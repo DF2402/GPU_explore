@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import time
 import torch.nn.functional as F
 import numpy as np
+from PIL import Image
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 grid = torch.zeros(1, 1, 100, 100, device=device)
@@ -32,19 +34,36 @@ def simulate(grid):
         torch.cuda.synchronize()
     return grid, time.time() - t
 
-def visualize(grid):
-    data = grid.detach().cpu().numpy() [0, 0, :, :]
+def convert_to_rgb(grid):
+    data = grid[0, 0, :, :]
     grid_max = data.max()
-    display = data / grid_max
-    plt.imshow(display, cmap='Blues', vmin=0, vmax=1)
-    plt.show()
+    normalized = (data / (grid_max + 1e-9)).clamp(0, 1)
+
+    h,w = data.shape
+    rgb = torch.zeros((h, w, 3), device=device)
+    rgb[..., 0] = torch.clamp(1.5 * normalized - 0.5, 0, 1) # Red
+    rgb[..., 1] = torch.clamp(1 - torch.abs(2 * normalized - 1), 0, 1) # Green
+    rgb[..., 2] = torch.clamp(1.5 * (1 - normalized) - 0.5, 0, 1) # Blue
+    return (rgb * 255).cpu().numpy().astype(np.uint8)
+    
+def visualize(grid):
+    rgb = convert_to_rgb(grid)
+    with open('water.ppm', 'wb') as f:
+        header = f"P6\n{rgb.shape[1]} {rgb.shape[0]}\n255\n"
+        f.write(header.encode('ascii'))
+        f.write(rgb.tobytes())
+    print(f"Saved to water.ppm")
+
+def show():
+    img = Image.open('water.ppm')
+    img.show()
 
 grid, time = simulate(grid)
 print(f"Time taken: {time} seconds")
 gird_mean = grid[0, 0, :, :].mean()
 print(f"Grid mean: {gird_mean}")
 visualize(grid)
-
+show()
 
 
 
