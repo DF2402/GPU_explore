@@ -123,7 +123,9 @@ def render_modern(grid):
     smooth_kernel = torch.ones(1, 1, 5, 5, device=grid.device) / 25.0
     smooth_grid = F.conv2d(grid, smooth_kernel, padding=2)
     data = smooth_grid[0, 0, :, :]
-    dy, dx = torch.gradient(data)
+    
+    dx = (data[:, 2:] - data[:, :-2]) / 2.0
+    dy = (data[2:, :] - data[:-2, :]) / 2.0
     slope_strength = 25.0
     dx *= slope_strength
     dy *= slope_strength
@@ -131,7 +133,10 @@ def render_modern(grid):
     nx, ny, nz = -dx/mag, -dy/mag, 1.0/mag
     
     h, w = nx.shape
-    y_coords, x_coords = torch.meshgrid(torch.linspace(0, 1, h, device=grid.device),torch.linspace(0, 1, w, device=grid.device), indexing='ij')
+    y_coords, x_coords = torch.meshgrid(
+        torch.linspace(0, 1, h, device=grid.device),
+        torch.linspace(0, 1, w, device=grid.device), 
+        indexing='ij')
     
     #Refraction
     refract_scale = 0.15 
