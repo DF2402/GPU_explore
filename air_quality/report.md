@@ -16,7 +16,7 @@ clean null or dirty data
 
 ## Result
 
-![Result] (result.png)
+![Result](result.png)
 
 ## Note 
 
